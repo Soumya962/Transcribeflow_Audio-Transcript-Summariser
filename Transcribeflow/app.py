@@ -1,0 +1,149 @@
+
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, jsonify
+from werkzeug.utils import secure_filename
+from whisper_utils import transcribe_audio
+from summarisation import summarize_text
+import mysql.connector
+import os
+import base64
+from datetime import datetime
+
+app = Flask(__name__)
+app.secret_key = "your_secret_key"
+
+# ---------------- DATABASE ----------------
+db = mysql.connector.connect(
+    host="localhost",
+    user="sihi",
+    password="1728",
+    database="transcribeflow"
+)
+cursor = db.cursor()
+
+# ---------------- UPLOAD FOLDER ----------------
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
+# ---------------- ROUTES ----------------
+
+@app.route('/')
+def index():
+    return render_template("login.html")
+
+
+# ---------------- LOGIN ----------------
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form['username']
+    password = request.form['password']
+
+    query = "SELECT * FROM users WHERE username=%s AND password=%s"
+    cursor.execute(query, (username, password))
+    result = cursor.fetchone()
+
+    if result:
+        session['username'] = username
+        return redirect(url_for('upload_page'))
+    else:
+        return "Invalid Credentials"
+
+
+# ---------------- REGISTER ----------------
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        query = "INSERT INTO users (username, password) VALUES (%s, %s)"
+        cursor.execute(query, (username, password))
+        db.commit()
+
+        return redirect(url_for('index'))
+
+    return render_template("register.html")
+
+
+# ---------------- UPLOAD + TRANSCRIBE ----------------
+@app.route('/upload', methods=['GET', 'POST'])
+def upload_page():
+
+    if 'username' not in session:
+        return redirect(url_for('index'))
+
+    transcription = None
+    summary = None
+    txt_filename = None
+    uploaded = False
+
+    if request.method == 'POST':
+
+        file = request.files.get('file')
+
+        if file and file.filename != "":
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            uploaded = True
+
+            # Transcribe
+            transcription = transcribe_audio(file_path)
+
+            # Summarize
+            summary = summarize_text(transcription)
+
+            # Save transcription as txt
+            txt_filename = filename.rsplit(".", 1)[0] + ".txt"
+            txt_path = os.path.join(app.config['UPLOAD_FOLDER'], txt_filename)
+
+            with open(txt_path, "w", encoding="utf-8") as f:
+                f.write(transcription)
+
+    return render_template(
+        "upload.html",
+        transcription=transcription,
+        summary=summary,
+        txt_filename=txt_filename,
+        uploaded=uploaded
+    )
+
+
+# ---------------- LIVE RECORDING ----------------
+@app.route('/record', methods=['POST'])
+def record_audio():
+
+    data = request.json['audio']
+    audio_data = base64.b64decode(data.split(',')[1])
+
+    filename = f"recorded_{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    with open(file_path, "wb") as f:
+        f.write(audio_data)
+
+    transcription = transcribe_audio(file_path)
+    summary = summarize_text(transcription)
+
+    return jsonify({
+        "transcription": transcription,
+        "summary": summary
+    })
+
+
+# ---------------- DOWNLOAD ----------------
+@app.route('/download/<filename>')
+def download_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
+
+
+# ---------------- LOGOUT ----------------
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    return redirect(url_for('index'))
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

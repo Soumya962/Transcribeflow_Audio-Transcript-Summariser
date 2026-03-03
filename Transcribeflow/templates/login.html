@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TranscribeFlow - Login</title>
+    <style>
+        body 
+        {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 600px;
+        }
+
+        .title-bar {
+            background-color: #1f5da8;
+            color: white;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .card {
+            background: white;
+            border-radius: 0 0 10px 10px;
+            padding: 40px;
+            box-shadow: 0px 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        input {
+            width: 80%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        .login-btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        .login-btn:hover {
+            background-color: #2980b9;
+        }
+
+        a {
+            color: #1f5da8;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="card">
+        <h2>Sign In</h2>
+
+        <form action="/login" method="POST">
+            <input type="text" name="username" placeholder="User ID" required>
+            <br>
+            <input type="password" name="password" placeholder="Password" required>
+            <br>
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+
+        <p>
+            Don't have an account? 
+            <a href="/register">Register</a>
+        </p>
+    </div>
+
+</div>
+
+</body>
+</html>
