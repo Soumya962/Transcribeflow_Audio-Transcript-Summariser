@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 from whisper_utils import transcribe_audio
@@ -6,6 +5,7 @@ from summarisation import summarize_text
 import mysql.connector
 import os
 import base64
+import json
 from datetime import datetime
 
 app = Flask(__name__)
@@ -26,8 +26,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-# ---------------- ROUTES ----------------
-
+# ---------------- HOME ----------------
 @app.route('/')
 def index():
     return render_template("login.html")
@@ -36,6 +35,7 @@ def index():
 # ---------------- LOGIN ----------------
 @app.route('/login', methods=['POST'])
 def login():
+
     username = request.form['username']
     password = request.form['password']
 
@@ -46,19 +46,21 @@ def login():
     if result:
         session['username'] = username
         return redirect(url_for('upload_page'))
-    else:
-        return "Invalid Credentials"
+
+    return "Invalid credentials"
 
 
 # ---------------- REGISTER ----------------
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register', methods=['GET','POST'])
 def register():
+
     if request.method == 'POST':
+
         username = request.form['username']
         password = request.form['password']
 
-        query = "INSERT INTO users (username, password) VALUES (%s, %s)"
-        cursor.execute(query, (username, password))
+        query = "INSERT INTO users (username,password) VALUES (%s,%s)"
+        cursor.execute(query,(username,password))
         db.commit()
 
         return redirect(url_for('index'))
@@ -67,7 +69,7 @@ def register():
 
 
 # ---------------- UPLOAD + TRANSCRIBE ----------------
-@app.route('/upload', methods=['GET', 'POST'])
+@app.route('/upload', methods=['GET','POST'])
 def upload_page():
 
     if 'username' not in session:
@@ -76,59 +78,90 @@ def upload_page():
     transcription = None
     summary = None
     txt_filename = None
-    uploaded = False
+    json_filename = None
+    uploaded_filename = None
 
-    if request.method == 'POST':
+    if request.method == "POST":
 
-        file = request.files.get('file')
+        file = request.files.get("file")
 
         if file and file.filename != "":
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            uploaded = True
 
-            # Transcribe
+            uploaded_filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], uploaded_filename)
+
+            file.save(file_path)
+
+            # Transcription
             transcription = transcribe_audio(file_path)
 
-            # Summarize
+            # Summary
             summary = summarize_text(transcription)
 
-            # Save transcription as txt
-            txt_filename = filename.rsplit(".", 1)[0] + ".txt"
-            txt_path = os.path.join(app.config['UPLOAD_FOLDER'], txt_filename)
+            base = uploaded_filename.rsplit(".",1)[0]
 
-            with open(txt_path, "w", encoding="utf-8") as f:
+            txt_filename = base + ".txt"
+            json_filename = base + ".json"
+
+            # Save TXT
+            with open(os.path.join(UPLOAD_FOLDER,txt_filename),"w",encoding="utf-8") as f:
                 f.write(transcription)
+
+            # Save JSON
+            with open(os.path.join(UPLOAD_FOLDER,json_filename),"w") as f:
+                json.dump({
+                    "transcription": transcription,
+                    "summary": summary
+                },f)
 
     return render_template(
         "upload.html",
         transcription=transcription,
         summary=summary,
         txt_filename=txt_filename,
-        uploaded=uploaded
+        json_filename=json_filename,
+        uploaded_filename=uploaded_filename
     )
 
 
-# ---------------- LIVE RECORDING ----------------
+# ---------------- LIVE RECORD ----------------
 @app.route('/record', methods=['POST'])
 def record_audio():
 
     data = request.json['audio']
     audio_data = base64.b64decode(data.split(',')[1])
 
-    filename = f"recorded_{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
-    with open(file_path, "wb") as f:
+    audio_filename = f"recorded_{timestamp}.wav"
+    file_path = os.path.join(UPLOAD_FOLDER,audio_filename)
+
+    with open(file_path,"wb") as f:
         f.write(audio_data)
 
     transcription = transcribe_audio(file_path)
     summary = summarize_text(transcription)
 
+    txt_filename = f"live_{timestamp}.txt"
+    json_filename = f"live_{timestamp}.json"
+
+    # Save TXT
+    with open(os.path.join(UPLOAD_FOLDER,txt_filename),"w",encoding="utf-8") as f:
+        f.write(transcription)
+
+    # Save JSON
+    with open(os.path.join(UPLOAD_FOLDER,json_filename),"w") as f:
+        json.dump({
+            "transcription":transcription,
+            "summary":summary
+        },f)
+
     return jsonify({
         "transcription": transcription,
-        "summary": summary
+        "summary": summary,
+        "txt_file": txt_filename,
+        "json_file": json_filename,
+        "audio_file": audio_filename
     })
 
 
@@ -141,7 +174,7 @@ def download_file(filename):
 # ---------------- LOGOUT ----------------
 @app.route('/logout')
 def logout():
-    session.pop('username', None)
+    session.pop('username',None)
     return redirect(url_for('index'))
 
 
