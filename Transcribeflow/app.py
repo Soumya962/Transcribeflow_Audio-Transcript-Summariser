@@ -13,9 +13,9 @@ app.secret_key = "your_secret_key"
 
 # ---------------- DATABASE ----------------
 db = mysql.connector.connect(
-    host="localhost",
-    user="sihi",
-    password="1728",
+    host="your_host",
+    user="your_user",
+    password="your_password",
     database="transcribeflow"
 )
 cursor = db.cursor()
