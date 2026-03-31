@@ -1,197 +1,258 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>TranscribeFlow</title>
-    <style>
-        body {
-            font-family: Arial;
-            background-color: #f4f6f9;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+<title>TranscribeFlow</title>
 
-        .container {
-            width: 700px;
-        }
+<style>
 
-        .title-bar {
-            background-color: #1f5da8;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            font-weight: bold;
-            border-radius: 10px 10px 0 0;
-            position: relative;
-        }
+body{
+font-family:Arial;
+background:#f4f6f9;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
+}
 
-        .logout-btn {
-            position: absolute;
-            right: 15px;
-            top: 12px;
-            background: #e74c3c;
-            color: white;
-            padding: 5px 12px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-size: 14px;
-        }
+.container{
+width:700px;
+}
 
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 0 0 10px 10px;
-            box-shadow: 0px 10px 25px rgba(0,0,0,0.1);
-        }
+.title-bar{
+background:#1f5da8;
+color:white;
+padding:15px;
+text-align:center;
+font-weight:bold;
+border-radius:10px 10px 0 0;
+position:relative;
+}
 
-        .upload-box {
-            border: 2px dashed #3498db;
-            padding: 40px;
-            text-align: center;
-            border-radius: 10px;
-            background-color: #eef6fb;
-        }
+.logout-btn{
+position:absolute;
+right:15px;
+top:12px;
+background:#e74c3c;
+color:white;
+padding:5px 12px;
+border-radius:5px;
+text-decoration:none;
+font-size:14px;
+}
 
-        .upload-btn {
-            background-color: #3498db;
-            color: white;
-            padding: 10px 25px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
+.card{
+background:white;
+padding:30px;
+border-radius:0 0 10px 10px;
+box-shadow:0px 10px 25px rgba(0,0,0,0.1);
+}
 
-        .record-btn {
-            background-color: green;
-            color: white;
-            padding: 8px 20px;
-            border: none;
-            border-radius: 6px;
-            margin: 5px;
-            cursor: pointer;
-        }
+.upload-box{
+border:2px dashed #3498db;
+padding:40px;
+text-align:center;
+border-radius:10px;
+background:#eef6fb;
+}
 
-        .result-box {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 8px;
-        }
+.upload-btn{
+background:#3498db;
+color:white;
+padding:10px 25px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
 
-        .download-btn {
-            display: inline-block;
-            margin-top: 10px;
-            background-color: green;
-            color: white;
-            padding: 8px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-        }
+.record-btn{
+background:#3498db;
+color:white;
+padding:8px 20px;
+border:none;
+border-radius:6px;
+margin:5px;
+cursor:pointer;
+}
 
-    </style>
+.result-box{
+margin-top:20px;
+padding:15px;
+background:#f9f9f9;
+border-radius:8px;
+}
+
+.download-btn{
+display:inline-block;
+margin-top:10px;
+margin-right:10px;
+background:green;
+color:white;
+padding:8px 20px;
+text-decoration:none;
+border-radius:5px;
+}
+
+</style>
 </head>
+
 <body>
 
 <div class="container">
 
-    <div class="title-bar">
-        TranscribeFlow
-        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-    </div>
+<div class="title-bar">
+TranscribeFlow
+<a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+</div>
 
-    <div class="card">
+<div class="card">
 
-        <!-- Upload Section -->
-        <form action="/upload" method="POST" enctype="multipart/form-data">
-            <div class="upload-box">
-                <h3>Upload your audio file</h3>
-                <p>Supported formats: MP3, WAV</p>
-                <input type="file" name="file" required>
-                <br><br>
-                <button type="submit" class="upload-btn">
-                    Transcribe & Summarize
-                </button>
-            </div>
-        </form>
+<!-- Upload -->
+<form action="/upload" method="POST" enctype="multipart/form-data">
 
-        <hr>
+<div class="upload-box">
 
-        <!-- Live Recording Section -->
-        <div class="upload-box">
-            <h3>Live Recording</h3>
-            <button class="record-btn" onclick="startRecording()">Start</button>
-            <button class="record-btn" onclick="stopRecording()">Stop</button>
-            <p id="status"></p>
-        </div>
+<h3>Upload your audio file</h3>
+<p>Supported formats: MP3, WAV, MP4</p>
 
-        {% if transcription is not none %}
-        <div class="result-box">
+<input type="file" name="file" required>
 
-            <h3>Uploaded File:</h3>
-            <p><b>{{ uploaded_filename }}</b></p>
+<br><br>
 
-            <h3>Transcription:</h3>
-            <p style="white-space: pre-wrap;">{{ transcription }}</p>
+<button type="submit" class="upload-btn">
+Transcribe & Summarize
+</button>
 
-            <h3>Summary:</h3>
-            <p>{{ summary }}</p>
+</div>
+</form>
 
-            <a href="{{ url_for('download_file', filename=txt_filename) }}"
-               class="download-btn">
-               Download Text File
-            </a>
+<hr>
 
-        </div>
-        {% endif %}
+<!-- Recording -->
+<div class="upload-box">
 
-    </div>
+<h3>Live Recording</h3>
+
+<button class="record-btn" onclick="startRecording()">Start</button>
+<button class="record-btn" onclick="stopRecording()">Stop</button>
+
+<p id="status"></p>
 
 </div>
 
+
+{% if transcription %}
+
+<div class="result-box">
+
+<h3>Uploaded File</h3>
+<p><b>{{ uploaded_filename }}</b></p>
+
+<h3>Transcription</h3>
+<p style="white-space:pre-wrap;">{{ transcription }}</p>
+
+<h3>Summary</h3>
+<p>{{ summary }}</p>
+
+<a href="{{ url_for('download_file', filename=txt_filename) }}" class="download-btn">
+Download TXT
+</a>
+
+<a href="{{ url_for('download_file', filename=json_filename) }}" class="download-btn">
+Download JSON
+</a>
+
+</div>
+
+{% endif %}
+
+</div>
+</div>
+
 <script>
+
 let mediaRecorder;
-let audioChunks = [];
+let audioChunks=[];
 
-function startRecording() {
-    navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(stream => {
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.start();
-        document.getElementById("status").innerText = "Recording...";
+function startRecording(){
 
-        mediaRecorder.ondataavailable = event => {
-            audioChunks.push(event.data);
-        };
+navigator.mediaDevices.getUserMedia({audio:true})
 
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(audioChunks, { type: 'audio/wav' });
-            audioChunks = [];
+.then(stream=>{
 
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
+mediaRecorder=new MediaRecorder(stream);
+mediaRecorder.start();
 
-            reader.onloadend = function() {
-                fetch('/record', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ audio: reader.result })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById("status").innerHTML =
-                        "<h4>Transcription:</h4>" + data.transcription +
-                        "<h4>Summary:</h4>" + data.summary;
-                });
-            };
-        };
-    });
+document.getElementById("status").innerText="Recording...";
+
+mediaRecorder.ondataavailable=e=>{
+audioChunks.push(e.data);
+};
+
+mediaRecorder.onstop=()=>{
+
+const blob=new Blob(audioChunks,{type:'audio/wav'});
+audioChunks=[];
+
+const reader=new FileReader();
+reader.readAsDataURL(blob);
+
+reader.onloadend=function(){
+
+fetch('/record',{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({audio:reader.result})
+})
+
+.then(res=>res.json())
+
+.then(data => {
+
+let resultHTML = `
+<div class="result-box">
+
+<h3>Live Recording Result</h3>
+
+<h4>Transcription</h4>
+<p style="white-space:pre-wrap;">${data.transcription}</p>
+
+<h4>Summary</h4>
+<p>${data.summary}</p>
+
+<a href="/download/${data.txt_file}" class="download-btn">
+Download TXT
+</a>
+
+<a href="/download/${data.json_file}" class="download-btn">
+Download JSON
+</a>
+
+<a href="/download/${data.audio_file}" class="download-btn">
+Download Recorded Audio
+</a>
+
+</div>
+`;
+
+document.getElementById("status").innerHTML = resultHTML;
+
+});
+
+};
+
+};
+
+});
+
 }
 
-function stopRecording() {
-    mediaRecorder.stop();
-    document.getElementById("status").innerText = "Processing...";
+function stopRecording(){
+
+mediaRecorder.stop();
+document.getElementById("status").innerText="Processing...";
+
 }
+
 </script>
 
 </body>
